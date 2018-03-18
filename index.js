@@ -197,7 +197,19 @@ const wld = (fileName, opts = {}) =>
                               fs.readFile(mainScriptPath, 'utf8', (err, scriptString) => {
                                 if (!err) {
                                   opts.onhostscript(name, src, mode, null, installDirectory, bindings)
-                                    .then(accept, reject);
+                                    .then(boundUrl => {
+                                      if (boundUrl) {
+                                        _setAttribute(el.attrs, 'boundUrl', boundUrl);
+                                        bindings[name] = {
+                                          localSrc: _getLocalSrc(src),
+                                          boundUrl,
+                                          scriptString,
+                                        };
+                                      }
+
+                                      accept();
+                                    })
+                                    .catch(reject);
                                 } else {
                                   reject(err);
                                 }
