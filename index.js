@@ -1,11 +1,7 @@
-const util = require('util');
 const path = require('path');
 const fs = require('fs');
 const url = require('url');
 const {URL} = url;
-const http = require('http');
-const child_process = require('child_process');
-const os = require('os');
 
 const parse5 = require('parse5');
 const {Node, fromAST, toAST, traverseAsync} = require('html-el');
