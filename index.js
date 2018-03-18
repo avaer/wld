@@ -137,6 +137,8 @@ const wld = (fileName, opts = {}) =>
                       }
                     }, {
                       keep: true,
+                      unsafeCleanup: true,
+                      dir: opts.installDirectory,
                     });
                   })
                     .then(installDirectory => {
