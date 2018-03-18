@@ -1,0 +1,23 @@
+{
+  "name": "wld",
+  "version": "0.0.1",
+  "description": "Web linker",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/modulesio/wld.git"
+  },
+  "author": "Avaer Kazmer <a@modules.io>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/modulesio/wld/issues"
+  },
+  "homepage": "https://github.com/modulesio/wld#readme",
+  "dependencies": {
+    "parse5": "^4.0.0",
+    "selector-lite": "^0.1.1"
+  }
+}
