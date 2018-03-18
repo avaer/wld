@@ -52,7 +52,7 @@ const wld = (fileName, opts = {}) =>
           const src = el.getAttribute('src');
           if (name && src) {
             if (opts.ondirectory) {
-              const boundUrl = await opts.ondirectory(name, src);
+              const boundUrl = await opts.ondirectory(name, src, bindings);
               if (boundUrl) {
                 _setAttribute(el.attrs, 'boundUrl', boundUrl);
                 bindings[name] = {
@@ -85,7 +85,7 @@ const wld = (fileName, opts = {}) =>
                 const scriptString = scriptEl.childNodes[0].value;
 
                 if (opts.onhostscript) {
-                  const boundUrl = await opts.onhostscript(name, src, mode, scriptString);
+                  const boundUrl = await opts.onhostscript(name, src, mode, scriptString, bindings);
                   if (boundUrl) {
                     _setAttribute(el.attrs, 'boundUrl', boundUrl);
                     bindings[name] = {
@@ -111,7 +111,7 @@ const wld = (fileName, opts = {}) =>
                   })
                   .then(async scriptString => {
                     if (opts.onhostscript) {
-                      const boundUrl = await opts.onhostscript(name, src, mode, scriptString);
+                      const boundUrl = await opts.onhostscript(name, src, mode, scriptString, bindings);
                       if (boundUrl) {
                         _setAttribute(el.attrs, 'boundUrl', boundUrl);
                         bindings[name] = {
@@ -124,7 +124,7 @@ const wld = (fileName, opts = {}) =>
                   });
               } else if (mode === 'nodejs') {
                 if (opts.onhostscript) {
-                  const boundUrl = await opts.onhostscript(name, src, mode, null);
+                  const boundUrl = await opts.onhostscript(name, src, mode, null, bindings);
                   if (boundUrl) {
                     _setAttribute(el.attrs, 'boundUrl', boundUrl);
                     bindings[name] = {
