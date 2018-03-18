@@ -84,6 +84,7 @@ const wld = (fileName, opts = {}) =>
                     if (boundUrl) {
                       _setAttribute(el.attrs, 'boundUrl', boundUrl);
                       bindings[name] = {
+                        rel,
                         localSrc: null,
                         boundUrl,
                         scriptString: null,
@@ -117,6 +118,7 @@ const wld = (fileName, opts = {}) =>
                         if (boundUrl) {
                           _setAttribute(el.attrs, 'boundUrl', boundUrl);
                           bindings[name] = {
+                            rel,
                             localSrc: _getLocalSrc(src),
                             boundUrl,
                             scriptString,
@@ -143,6 +145,7 @@ const wld = (fileName, opts = {}) =>
                             if (boundUrl) {
                               _setAttribute(el.attrs, 'boundUrl', boundUrl);
                               bindings[name] = {
+                                rel,
                                 localSrc: _getLocalSrc(src),
                                 boundUrl,
                                 scriptString,
@@ -234,6 +237,7 @@ const wld = (fileName, opts = {}) =>
                                         if (boundUrl) {
                                           _setAttribute(el.attrs, 'boundUrl', boundUrl);
                                           bindings[name] = {
+                                            rel,
                                             localSrc: _getLocalSrc(src),
                                             boundUrl,
                                             scriptString,
