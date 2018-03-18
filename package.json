@@ -1,6 +1,6 @@
 {
   "name": "wld",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Web linker",
   "main": "index.js",
   "scripts": {
