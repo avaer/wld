@@ -7,14 +7,10 @@ const http = require('http');
 const child_process = require('child_process');
 const os = require('os');
 
-const express = require('express');
-const expressPut = require('express-put')(express);
 const parse5 = require('parse5');
 const {Node, fromAST, toAST, traverseAsync} = require('html-el');
 const selector = require('selector-lite');
 const fetch = require('window-fetch');
-const windowEval = require('window-eval-native');
-const tmp = require('tmp');
 
 const wld = (fileName, opts = {}) =>
   new Promise((accept, reject) => {
