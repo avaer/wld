@@ -7,6 +7,7 @@ const parse5 = require('parse5');
 const {Node, fromAST, toAST, traverseAsync} = require('html-el');
 const selector = require('selector-lite');
 const fetch = require('window-fetch');
+const yarnPath = require.resolve('yarn/bin/yarn.js');
 
 const wld = (fileName, opts = {}) =>
   new Promise((accept, reject) => {
@@ -124,15 +125,73 @@ const wld = (fileName, opts = {}) =>
                   });
               } else if (mode === 'nodejs') {
                 if (opts.onhostscript) {
-                  const boundUrl = await opts.onhostscript(name, src, mode, null, bindings);
-                  if (boundUrl) {
-                    _setAttribute(el.attrs, 'boundUrl', boundUrl);
-                    bindings[name] = {
-                      localSrc: _getLocalSrc(src),
-                      boundUrl,
-                      scriptString,
-                    };
-                  }
+                  return new Promise((accept, reject) => {
+                    const npmInstall = child_process.spawn(
+                      'node',
+                      [
+                        yarnPath,
+                        'add',
+                        src,
+                        '--production',
+                        '--mutex', 'file:' + path.join(os.tmpdir(), '.intrakit-yarn-lock'),
+                      ],
+                      {
+                        cwd: p,
+                        env: process.env,
+                      }
+                    );
+                    // npmInstall.stdout.pipe(process.stderr);
+                    npmInstall.stderr.pipe(process.stderr);
+                    npmInstall.on('exit', code => {
+                      if (code === 0) {
+                        accept();
+                      } else {
+                        reject(new Error('npm install error: ' + code));
+                      }
+                    });
+                    npmInstall.on('error', err => {
+                      reject(err);
+                    });
+                  })
+                    .then(() => new Promise((accept, reject) => {
+                      const packageJsonPath = path.join(p, 'package.json');
+                      fs.lstat(packageJsonPath, (err, stats) => {
+                        if (!err) {
+                          fs.readFile(packageJsonPath, 'utf8', (err, s) => {
+                            if (!err) {
+                              const j = JSON.parse(s);
+                              const {dependencies} = j;
+                              const moduleName = Object.keys(dependencies)[0];
+                              accept(moduleName);
+                            } else {
+                              reject(err);
+                            }
+                          });
+                        } else {
+                          reject(err);
+                        }
+                      });
+                    }))
+                    .then(moduleName => new Promise((accept, reject) => {
+                      const packageJsonPath = path.join(p, 'node_modules', moduleName, 'package.json');
+                      fs.readFile(packageJsonPath, 'utf8', (err, s) => {
+                        if (!err) {
+                          const j = JSON.parse(s);
+                          const {main: mainPath} = j;
+                          const mainScriptPath = path.join(p, 'node_modules', moduleName, mainPath);
+                          fs.readFile(mainScriptPath, 'utf8', (err, scriptString) => {
+                            if (!err) {
+                              opts.onhostscript(name, src, mode, null, bindings)
+                                .then(accept, reject);
+                            } else {
+                              reject(err);
+                            }
+                          });
+                        } else {
+                          reject(err);
+                        }
+                      });
+                    }));
                 }
               }
             }
