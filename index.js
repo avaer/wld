@@ -234,6 +234,7 @@ const wld = (fileName, opts = {}) =>
       .then(() => {
         return {
           indexHtml: parse5.serialize(toAST(document)),
+          bindings,
         };
       });
   });
