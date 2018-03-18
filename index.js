@@ -193,7 +193,7 @@ const wld = (fileName, opts = {}) =>
                             if (!err) {
                               const j = JSON.parse(s);
                               const {main: mainPath} = j;
-                              const mainScriptPath = path.join(p, 'node_modules', moduleName, mainPath);
+                              const mainScriptPath = path.join(installDirectory, 'node_modules', moduleName, mainPath);
                               fs.readFile(mainScriptPath, 'utf8', (err, scriptString) => {
                                 if (!err) {
                                   opts.onhostscript(name, src, mode, null, installDirectory, bindings)
