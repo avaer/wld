@@ -28,24 +28,6 @@ const wld = (fileName, opts = {}) =>
     const baseUrl = 'file://' + __dirname + '/';
     const bindings = {};
 
-    const _makeContext = o => {
-      const context = {
-        window: null,
-        require,
-        process: new Proxy(process, {
-          get(target, key, value) {
-            if (key === 'env') {
-              return Object.assign({}, target.env, o);
-            } else {
-              return target[key];
-            }
-          },
-        }),
-        console,
-      };
-      context.window = context;
-      return context;
-    };
     const _getLocalSrc = src => {
       const p = url.parse(src).pathname;
       return p && path.join('/', p);
@@ -60,13 +42,6 @@ const wld = (fileName, opts = {}) =>
           value,
         });
       }
-    };
-    const _formatBindings = bindings => {
-      const result = {};
-      for (const k in bindings) {
-        result['LINK_' + k] = bindings[k].boundUrl;
-      }
-      return result;
     };
 
     return traverseAsync(html, async el => {
