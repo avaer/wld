@@ -80,7 +80,7 @@ const wld = (fileName, opts = {}) =>
                 const src = el.getAttribute('src');
                 if (name && src) {
                   if (opts.ondirectory) {
-                    const boundUrl = await opts.ondirectory(name, src, bindings);
+                    const boundUrl = await opts.ondirectory(name, src, installDirectory, bindings);
                     if (boundUrl) {
                       _setAttribute(el.attrs, 'boundUrl', boundUrl);
                       bindings[name] = {
@@ -113,7 +113,7 @@ const wld = (fileName, opts = {}) =>
                       const scriptString = scriptEl.childNodes[0].value;
 
                       if (opts.onhostscript) {
-                        const boundUrl = await opts.onhostscript(name, src, mode, scriptString, bindings);
+                        const boundUrl = await opts.onhostscript(name, src, mode, scriptString, installDirectory, bindings);
                         if (boundUrl) {
                           _setAttribute(el.attrs, 'boundUrl', boundUrl);
                           bindings[name] = {
@@ -139,7 +139,7 @@ const wld = (fileName, opts = {}) =>
                         })
                         .then(async scriptString => {
                           if (opts.onhostscript) {
-                            const boundUrl = await opts.onhostscript(name, src, mode, scriptString, bindings);
+                            const boundUrl = await opts.onhostscript(name, src, mode, scriptString, installDirectory, bindings);
                             if (boundUrl) {
                               _setAttribute(el.attrs, 'boundUrl', boundUrl);
                               bindings[name] = {
@@ -229,7 +229,7 @@ const wld = (fileName, opts = {}) =>
                                 const mainScriptPath = path.join(moduleDirectory, 'node_modules', moduleName, mainPath);
                                 fs.readFile(mainScriptPath, 'utf8', (err, scriptString) => {
                                   if (!err) {
-                                    opts.onhostscript(name, src, mode, null, bindings)
+                                    opts.onhostscript(name, src, mode, null, installDirectory, bindings)
                                       .then(boundUrl => {
                                         if (boundUrl) {
                                           _setAttribute(el.attrs, 'boundUrl', boundUrl);
