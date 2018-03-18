@@ -1,8 +1,8 @@
 const fs = require('fs');
 const util = require('util');
 const parse5 = require('parse5');
+const {fromAST} = require('html-el');
 const selector = require('selector-lite');
-const {fromAST} = require('./html-el');
 
 if (require.main === module) {
   const fileName = process.argv[2];
