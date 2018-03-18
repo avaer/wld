@@ -48,200 +48,227 @@ const wld = (fileName, opts = {}) =>
       }
     };
 
-    return traverseAsync(html, async el => {
-      if (el.tagName === 'LINK') {
-        const rel = el.getAttribute('rel');
-        if (rel === 'directory') {
-          const name = el.getAttribute('name');
-          const src = el.getAttribute('src');
-          if (name && src) {
-            if (opts.ondirectory) {
-              const boundUrl = await opts.ondirectory(name, src, bindings);
-              if (boundUrl) {
-                _setAttribute(el.attrs, 'boundUrl', boundUrl);
-                bindings[name] = {
-                  localSrc: null,
-                  boundUrl,
-                  scriptString: null,
-                };
-              }
-            }
-          } else {
-            console.warn(`${fileName}:${el.location.line}:${el.location.col}: invalid attributes in directory link ${JSON.stringify({name, src})}`);
-          }
-        } else if (rel === 'hostScript') {
-          const name = el.getAttribute('name');
-          const src = el.getAttribute('src');
-          const type = el.getAttribute('type');
-          const mode = (() => {
-            if (!type || /^(?:(?:text|application)\/javascript|application\/ecmascript)$/.test(type)) {
-              return 'javascript';
-            } else if (type === 'application/nodejs') {
-              return 'nodejs';
+    return new Promise((accept, reject) => {
+      tmp.dir((err, p) => {
+        if (!err) {
+          accept(p);
+        } else {
+          reject(err);
+        }
+      }, {
+        keep: true,
+        unsafeCleanup: true,
+      });
+    })
+      .then(installDirectory => {
+        return new Promise((accept, reject) => {
+          rimraf(installDirectory, err => {
+            if (!err) {
+              accept();
             } else {
-              return null;
+              reject(err);
             }
-          })();
-          if (name && src && mode) {
-            if (/^#[a-z][a-z0-9\-]*$/i.test(src)) {
-              const scriptEl = selector.find(html, src, true);
-              if (scriptEl && scriptEl.childNodes.length === 1 && scriptEl.childNodes[0].nodeType === Node.TEXT_NODE) {
-                const scriptString = scriptEl.childNodes[0].value;
-
-                if (opts.onhostscript) {
-                  const boundUrl = await opts.onhostscript(name, src, mode, scriptString, null, bindings);
-                  if (boundUrl) {
-                    _setAttribute(el.attrs, 'boundUrl', boundUrl);
-                    bindings[name] = {
-                      localSrc: _getLocalSrc(src),
-                      boundUrl,
-                      scriptString,
-                    };
-                  }
-                }
-              } else {
-                console.warn(`${fileName}:${el.location.line}:${el.location.col}: ignoring invalid link script tag reference ${JSON.stringify(src)}`);
-              }
-            } else {
-              if (mode === 'javascript') {
-                const url = new URL(src, baseUrl).href;
-                await fetch(url)
-                  .then(res => {
-                    if (res.status >= 200 && res.status < 300) {
-                      return res.text();
-                    } else {
-                      return Promise.reject(new Error('invalid status code: ' + res.status));
+          });
+        })
+          .then(() => traverseAsync(html, async el => {
+            if (el.tagName === 'LINK') {
+              const rel = el.getAttribute('rel');
+              if (rel === 'directory') {
+                const name = el.getAttribute('name');
+                const src = el.getAttribute('src');
+                if (name && src) {
+                  if (opts.ondirectory) {
+                    const boundUrl = await opts.ondirectory(name, src, bindings);
+                    if (boundUrl) {
+                      _setAttribute(el.attrs, 'boundUrl', boundUrl);
+                      bindings[name] = {
+                        localSrc: null,
+                        boundUrl,
+                        scriptString: null,
+                      };
                     }
-                  })
-                  .then(async scriptString => {
-                    if (opts.onhostscript) {
-                      const boundUrl = await opts.onhostscript(name, src, mode, scriptString, null, bindings);
-                      if (boundUrl) {
-                        _setAttribute(el.attrs, 'boundUrl', boundUrl);
-                        bindings[name] = {
-                          localSrc: _getLocalSrc(src),
-                          boundUrl,
-                          scriptString,
-                        };
+                  }
+                } else {
+                  console.warn(`${fileName}:${el.location.line}:${el.location.col}: invalid attributes in directory link ${JSON.stringify({name, src})}`);
+                }
+              } else if (rel === 'hostScript') {
+                const name = el.getAttribute('name');
+                const src = el.getAttribute('src');
+                const type = el.getAttribute('type');
+                const mode = (() => {
+                  if (!type || /^(?:(?:text|application)\/javascript|application\/ecmascript)$/.test(type)) {
+                    return 'javascript';
+                  } else if (type === 'application/nodejs') {
+                    return 'nodejs';
+                  } else {
+                    return null;
+                  }
+                })();
+                if (name && src && mode) {
+                  if (/^#[a-z][a-z0-9\-]*$/i.test(src)) {
+                    const scriptEl = selector.find(html, src, true);
+                    if (scriptEl && scriptEl.childNodes.length === 1 && scriptEl.childNodes[0].nodeType === Node.TEXT_NODE) {
+                      const scriptString = scriptEl.childNodes[0].value;
+
+                      if (opts.onhostscript) {
+                        const boundUrl = await opts.onhostscript(name, src, mode, scriptString, bindings);
+                        if (boundUrl) {
+                          _setAttribute(el.attrs, 'boundUrl', boundUrl);
+                          bindings[name] = {
+                            localSrc: _getLocalSrc(src),
+                            boundUrl,
+                            scriptString,
+                          };
+                        }
+                      }
+                    } else {
+                      console.warn(`${fileName}:${el.location.line}:${el.location.col}: ignoring invalid link script tag reference ${JSON.stringify(src)}`);
+                    }
+                  } else {
+                    if (mode === 'javascript') {
+                      const url = new URL(src, baseUrl).href;
+                      await fetch(url)
+                        .then(res => {
+                          if (res.status >= 200 && res.status < 300) {
+                            return res.text();
+                          } else {
+                            return Promise.reject(new Error('invalid status code: ' + res.status));
+                          }
+                        })
+                        .then(async scriptString => {
+                          if (opts.onhostscript) {
+                            const boundUrl = await opts.onhostscript(name, src, mode, scriptString, bindings);
+                            if (boundUrl) {
+                              _setAttribute(el.attrs, 'boundUrl', boundUrl);
+                              bindings[name] = {
+                                localSrc: _getLocalSrc(src),
+                                boundUrl,
+                                scriptString,
+                              };
+                            }
+                          }
+                        });
+                    } else if (mode === 'nodejs') {
+                      if (opts.onhostscript) {
+                        const moduleDirectory = path.join(installDirectory, 'modules', src);
+
+                        return new Promise((accept, reject) => {
+                          mkdirp(moduleDirectory, err => {
+                            if (!err) {
+                              accept();
+                            } else {
+                              reject(err);
+                            }
+                          });
+                        })
+                          .then(() => new Promise((accept, reject) => {
+                            fs.writeFile(path.join(moduleDirectory, 'package.json'), JSON.stringify({}), err => {
+                              if (!err) {
+                                accept();
+                              } else {
+                                reject(err);
+                              }
+                            });
+                          }))
+                        return new Promise((accept, reject) => {
+                          const npmInstall = child_process.spawn(
+                            'node',
+                            [
+                              yarnPath,
+                              'add',
+                              src,
+                              '--production',
+                              '--mutex', 'file:' + path.join(os.tmpdir(), '.intrakit-yarn-lock'),
+                            ],
+                            {
+                              cwd: moduleDirectory,
+                              env: process.env,
+                            }
+                          );
+                          // npmInstall.stdout.pipe(process.stderr);
+                          npmInstall.stderr.pipe(process.stderr);
+                          npmInstall.on('exit', code => {
+                            if (code === 0) {
+                              accept();
+                            } else {
+                              reject(new Error('npm install error: ' + code));
+                            }
+                          });
+                          npmInstall.on('error', err => {
+                            reject(err);
+                          });
+                        })
+                          .then(() => new Promise((accept, reject) => {
+                            const packageJsonPath = path.join(moduleDirectory, 'package.json');
+                            fs.lstat(packageJsonPath, (err, stats) => {
+                              if (!err) {
+                                fs.readFile(packageJsonPath, 'utf8', (err, s) => {
+                                  if (!err) {
+                                    const j = JSON.parse(s);
+                                    const {dependencies} = j;
+                                    const moduleName = Object.keys(dependencies)[0];
+                                    accept(moduleName);
+                                  } else {
+                                    reject(err);
+                                  }
+                                });
+                              } else {
+                                reject(err);
+                              }
+                            });
+                          }))
+                          .then(moduleName => new Promise((accept, reject) => {
+                            const packageJsonPath = path.join(moduleDirectory, 'node_modules', moduleName, 'package.json');
+
+                            fs.readFile(packageJsonPath, 'utf8', (err, s) => {
+                              if (!err) {
+                                const j = JSON.parse(s);
+                                const {main: mainPath} = j;
+                                const mainScriptPath = path.join(moduleDirectory, 'node_modules', moduleName, mainPath);
+                                fs.readFile(mainScriptPath, 'utf8', (err, scriptString) => {
+                                  if (!err) {
+                                    opts.onhostscript(name, src, mode, null, bindings)
+                                      .then(boundUrl => {
+                                        if (boundUrl) {
+                                          _setAttribute(el.attrs, 'boundUrl', boundUrl);
+                                          bindings[name] = {
+                                            localSrc: _getLocalSrc(src),
+                                            boundUrl,
+                                            scriptString,
+                                          };
+                                        }
+
+                                        accept();
+                                      })
+                                      .catch(reject);
+                                  } else {
+                                    reject(err);
+                                  }
+                                });
+                              } else {
+                                reject(err);
+                              }
+                            });
+                          }));
                       }
                     }
-                  });
-              } else if (mode === 'nodejs') {
-                if (opts.onhostscript) {
-                  return new Promise((accept, reject) => {
-                    if (opts.installDirectory) {
-                      accept(opts.installDirectory);
-                    } else {
-                      tmp.dir((err, installDirectory) => {
-                        if (!err) {
-                          accept(installDirectory);
-                        } else {
-                          reject(err);
-                        }
-                      }, {
-                        keep: true,
-                        unsafeCleanup: true,
-                      });
-                    }
-                  })
-                    .then(installDirectory => {
-                      return new Promise((accept, reject) => {
-                        const npmInstall = child_process.spawn(
-                          'node',
-                          [
-                            yarnPath,
-                            'add',
-                            src,
-                            '--production',
-                            '--mutex', 'file:' + path.join(os.tmpdir(), '.intrakit-yarn-lock'),
-                          ],
-                          {
-                            cwd: installDirectory,
-                            env: process.env,
-                          }
-                        );
-                        // npmInstall.stdout.pipe(process.stderr);
-                        npmInstall.stderr.pipe(process.stderr);
-                        npmInstall.on('exit', code => {
-                          if (code === 0) {
-                            accept();
-                          } else {
-                            reject(new Error('npm install error: ' + code));
-                          }
-                        });
-                        npmInstall.on('error', err => {
-                          reject(err);
-                        });
-                      })
-                        .then(() => new Promise((accept, reject) => {
-                          const packageJsonPath = path.join(installDirectory, 'package.json');
-                          fs.lstat(packageJsonPath, (err, stats) => {
-                            if (!err) {
-                              fs.readFile(packageJsonPath, 'utf8', (err, s) => {
-                                if (!err) {
-                                  const j = JSON.parse(s);
-                                  const {dependencies} = j;
-                                  const moduleName = Object.keys(dependencies)[0];
-                                  accept(moduleName);
-                                } else {
-                                  reject(err);
-                                }
-                              });
-                            } else {
-                              reject(err);
-                            }
-                          });
-                        }))
-                        .then(moduleName => new Promise((accept, reject) => {
-                          const packageJsonPath = path.join(installDirectory, 'node_modules', moduleName, 'package.json');
-                          fs.readFile(packageJsonPath, 'utf8', (err, s) => {
-                            if (!err) {
-                              const j = JSON.parse(s);
-                              const {main: mainPath} = j;
-                              const mainScriptPath = path.join(installDirectory, 'node_modules', moduleName, mainPath);
-                              fs.readFile(mainScriptPath, 'utf8', (err, scriptString) => {
-                                if (!err) {
-                                  opts.onhostscript(name, src, mode, null, installDirectory, bindings)
-                                    .then(boundUrl => {
-                                      if (boundUrl) {
-                                        _setAttribute(el.attrs, 'boundUrl', boundUrl);
-                                        bindings[name] = {
-                                          localSrc: _getLocalSrc(src),
-                                          boundUrl,
-                                          scriptString,
-                                        };
-                                      }
-
-                                      accept();
-                                    })
-                                    .catch(reject);
-                                } else {
-                                  reject(err);
-                                }
-                              });
-                            } else {
-                              reject(err);
-                            }
-                          });
-                        }));
-                    });
+                  }
+                } else {
+                  console.warn(`${fileName}:${el.location.line}:${el.location.col}: invalid link hostScript arguments ${JSON.stringify({name, src, type})}`);
                 }
+              } else {
+                console.warn(`${fileName}:${el.location.line}:${el.location.col}: ignoring unknown link rel ${JSON.stringify(rel)}`);
               }
             }
-          } else {
-            console.warn(`${fileName}:${el.location.line}:${el.location.col}: invalid link hostScript arguments ${JSON.stringify({name, src, type})}`);
-          }
-        } else {
-          console.warn(`${fileName}:${el.location.line}:${el.location.col}: ignoring unknown link rel ${JSON.stringify(rel)}`);
-        }
-      }
-    })
-      .then(() => {
-        return {
-          indexHtml: parse5.serialize(toAST(document)),
-          bindings,
-        };
-      });
+          });
+      })
+        .then(() => {
+          return {
+            indexHtml: parse5.serialize(toAST(document)),
+            bindings,
+            installDirectory,
+          };
+        });
   });
 
 module.exports = wld;
