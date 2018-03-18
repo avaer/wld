@@ -154,7 +154,7 @@ const wld = (fileName, opts = {}) =>
                       if (opts.onhostscript) {
                         const moduleDirectory = path.join(installDirectory, 'modules', src);
 
-                        return new Promise((accept, reject) => {
+                        await new Promise((accept, reject) => {
                           mkdirp(moduleDirectory, err => {
                             if (!err) {
                               accept();
