@@ -129,9 +129,9 @@ const wld = (fileName, opts = {}) =>
               } else if (mode === 'nodejs') {
                 if (opts.onhostscript) {
                   return new Promise((accept, reject) => {
-                    tmp.dir((err, p) => {
+                    tmp.dir((err, installDirectory) => {
                       if (!err) {
-                        accept(p);
+                        accept(installDirectory);
                       } else {
                         reject(err);
                       }
@@ -139,7 +139,7 @@ const wld = (fileName, opts = {}) =>
                       keep: true,
                     });
                   })
-                    .then(p => {
+                    .then(installDirectory => {
                       return new Promise((accept, reject) => {
                         const npmInstall = child_process.spawn(
                           'node',
@@ -151,7 +151,7 @@ const wld = (fileName, opts = {}) =>
                             '--mutex', 'file:' + path.join(os.tmpdir(), '.intrakit-yarn-lock'),
                           ],
                           {
-                            cwd: p,
+                            cwd: installDirectory,
                             env: process.env,
                           }
                         );
@@ -169,7 +169,7 @@ const wld = (fileName, opts = {}) =>
                         });
                       })
                         .then(() => new Promise((accept, reject) => {
-                          const packageJsonPath = path.join(p, 'package.json');
+                          const packageJsonPath = path.join(installDirectory, 'package.json');
                           fs.lstat(packageJsonPath, (err, stats) => {
                             if (!err) {
                               fs.readFile(packageJsonPath, 'utf8', (err, s) => {
@@ -188,7 +188,7 @@ const wld = (fileName, opts = {}) =>
                           });
                         }))
                         .then(moduleName => new Promise((accept, reject) => {
-                          const packageJsonPath = path.join(p, 'node_modules', moduleName, 'package.json');
+                          const packageJsonPath = path.join(installDirectory, 'node_modules', moduleName, 'package.json');
                           fs.readFile(packageJsonPath, 'utf8', (err, s) => {
                             if (!err) {
                               const j = JSON.parse(s);
@@ -196,7 +196,7 @@ const wld = (fileName, opts = {}) =>
                               const mainScriptPath = path.join(p, 'node_modules', moduleName, mainPath);
                               fs.readFile(mainScriptPath, 'utf8', (err, scriptString) => {
                                 if (!err) {
-                                  opts.onhostscript(name, src, mode, null, null, bindings)
+                                  opts.onhostscript(name, src, mode, null, installDirectory, bindings)
                                     .then(accept, reject);
                                 } else {
                                   reject(err);
