@@ -9,6 +9,7 @@ const parse5 = require('parse5');
 const {Node, fromAST, toAST, traverseAsync} = require('html-el');
 const selector = require('selector-lite');
 const fetch = require('window-fetch');
+const tmp = require('tmp');
 const yarnPath = require.resolve('yarn/bin/yarn.js');
 
 const wld = (fileName, opts = {}) =>
@@ -128,33 +129,44 @@ const wld = (fileName, opts = {}) =>
               } else if (mode === 'nodejs') {
                 if (opts.onhostscript) {
                   return new Promise((accept, reject) => {
-                    const npmInstall = child_process.spawn(
-                      'node',
-                      [
-                        yarnPath,
-                        'add',
-                        src,
-                        '--production',
-                        '--mutex', 'file:' + path.join(os.tmpdir(), '.intrakit-yarn-lock'),
-                      ],
-                      {
-                        cwd: p,
-                        env: process.env,
-                      }
-                    );
-                    // npmInstall.stdout.pipe(process.stderr);
-                    npmInstall.stderr.pipe(process.stderr);
-                    npmInstall.on('exit', code => {
-                      if (code === 0) {
-                        accept();
+                    tmp.dir((err, p) => {
+                      if (!err) {
+                        accept(p);
                       } else {
-                        reject(new Error('npm install error: ' + code));
+                        reject(err);
                       }
-                    });
-                    npmInstall.on('error', err => {
-                      reject(err);
+                    }, {
+                      keep: true,
                     });
                   })
+                    .then(p => new Promise((accept, reject) => {
+                      const npmInstall = child_process.spawn(
+                        'node',
+                        [
+                          yarnPath,
+                          'add',
+                          src,
+                          '--production',
+                          '--mutex', 'file:' + path.join(os.tmpdir(), '.intrakit-yarn-lock'),
+                        ],
+                        {
+                          cwd: p,
+                          env: process.env,
+                        }
+                      );
+                      // npmInstall.stdout.pipe(process.stderr);
+                      npmInstall.stderr.pipe(process.stderr);
+                      npmInstall.on('exit', code => {
+                        if (code === 0) {
+                          accept();
+                        } else {
+                          reject(new Error('npm install error: ' + code));
+                        }
+                      });
+                      npmInstall.on('error', err => {
+                        reject(err);
+                      });
+                    }))
                     .then(() => new Promise((accept, reject) => {
                       const packageJsonPath = path.join(p, 'package.json');
                       fs.lstat(packageJsonPath, (err, stats) => {

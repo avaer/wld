@@ -20,6 +20,7 @@
     "html-el": "0.0.2",
     "parse5": "^4.0.0",
     "selector-lite": "^0.1.1",
+    "tmp": "0.0.33",
     "window-fetch": "0.0.5",
     "yarn": "^1.5.1"
   }
