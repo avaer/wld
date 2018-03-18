@@ -5,11 +5,13 @@ const {URL} = url;
 const child_process = require('child_process');
 const os = require('os');
 
+const mkdirp = require('mkdirp');
+const rimraf = require('rimraf');
+const tmp = require('tmp');
 const parse5 = require('parse5');
 const {Node, fromAST, toAST, traverseAsync} = require('html-el');
 const selector = require('selector-lite');
 const fetch = require('window-fetch');
-const tmp = require('tmp');
 const yarnPath = require.resolve('yarn/bin/yarn.js');
 
 const wld = (fileName, opts = {}) =>
@@ -260,14 +262,14 @@ const wld = (fileName, opts = {}) =>
                 console.warn(`${fileName}:${el.location.line}:${el.location.col}: ignoring unknown link rel ${JSON.stringify(rel)}`);
               }
             }
+          }))
+          .then(() => {
+            return {
+              indexHtml: parse5.serialize(toAST(document)),
+              bindings,
+              installDirectory,
+            };
           });
-      })
-        .then(() => {
-          return {
-            indexHtml: parse5.serialize(toAST(document)),
-            bindings,
-            installDirectory,
-          };
         });
   });
 
