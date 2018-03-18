@@ -129,17 +129,20 @@ const wld = (fileName, opts = {}) =>
               } else if (mode === 'nodejs') {
                 if (opts.onhostscript) {
                   return new Promise((accept, reject) => {
-                    tmp.dir((err, installDirectory) => {
-                      if (!err) {
-                        accept(installDirectory);
-                      } else {
-                        reject(err);
-                      }
-                    }, {
-                      keep: true,
-                      unsafeCleanup: true,
-                      dir: opts.installDirectory,
-                    });
+                    if (opts.installDirectory) {
+                      accept(opts.installDirectory);
+                    } else {
+                      tmp.dir((err, installDirectory) => {
+                        if (!err) {
+                          accept(installDirectory);
+                        } else {
+                          reject(err);
+                        }
+                      }, {
+                        keep: true,
+                        unsafeCleanup: true,
+                      });
+                    }
                   })
                     .then(installDirectory => {
                       return new Promise((accept, reject) => {
